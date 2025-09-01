@@ -1,16 +1,19 @@
 const axios = require("axios");
 const uuid = require("uuid");
+require("dotenv").config();
+
+const wiseClient = axios.create({
+    baseURL: process.env.API_URL,
+    timeout: 5000,
+    headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.API_KEY}`,
+    },
+});
 
 const listProfiles = async () => {
     try {
-        const url = `https://api.sandbox.transferwise.tech/v2/profiles`;
-        const config = {
-            headers: {
-                "Content-Type": "application/json",
-            },
-        };
-
-        const response = await axios.get(url, config);
+        const response = await wiseClient.get("/v2/profiles");
         return response.data;
     } catch (error) {
         console.error(`Status ${error.response.status}`);
@@ -22,19 +25,13 @@ const listProfiles = async () => {
 
 const createQuote = async (profileId) => {
     try {
-        const url = `https://api.sandbox.transferwise.tech/v3/profiles/${profileId}/quotes`;
-        const config = {
-            headers: {
-                "Content-Type": "application/json",
-            },
-        };
         const body = {
             sourceCurrency: "SGD",
             targetCurrency: "GBP",
             sourceAmount: 1000,
         };
 
-        const response = await axios.post(url, body, config);
+        const response = await wiseClient.post(`/v3/profiles/${profileId}/quotes`, body);
         return response.data;
     } catch (error) {
         console.error(`Status ${error.response.status}`);
@@ -96,14 +93,18 @@ const createTransfer = async () => {
 const runLogic = async () => {
     // Task 1: Find out the Personal Profile ID of the user.
     const profiles = await listProfiles();
-    const profileId = null;
+    const profile = profiles.find(profile => (profile.type || "").toLocaleLowerCase() === "personal");
+    if(!profile) {
+        throw new Error("No personal profile found");
+    }
+    const profileId = profile.id;
     console.log(`Profile ID: ${profileId}`); // Example Console Log
 
     // Create Quote
     const quote = await createQuote(profileId);
-
-    // [IMP] Select BANK_TRANSFER option for both payin and payout
-    // Make sure you are selecting the correct payin and payout options to get the            correct transfer fee.
+    console.log(quote);
+    // [IMP] Select BANK_TRANSFER option for both paying and payout
+    // Make sure you are selecting the correct paying and payout options to get the            correct transfer fee.
     // Task 2: Console Log the Quote ID
     // Task 3: Console Log the Amount the recipient will receive, including the               currency (e.g. "12.34 GBP")
     // Task 4: Console Log the Exchange Rate (4 decimal places, e.g. "1.2345")
