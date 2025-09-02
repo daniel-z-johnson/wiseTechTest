@@ -12,6 +12,7 @@ const wiseClient = axios.create({
         "Accept": "application/json"
     },
 });
+
 const dateOptions = {
     year: "numeric",
     month: "2-digit",
@@ -21,14 +22,20 @@ const dateOptions = {
     hour12: false
 };
 
+const defaultErrorHandler = (error) => {
+    if(error.response) {
+        console.error(`Status ${error.response.status}`);
+        console.error(`Trace ID: ${error.response.headers["x-trace-id"]}`);
+        console.error(error.response.data);
+    }
+}
+
 const listProfiles = async () => {
     try {
         const response = await wiseClient.get("/v2/profiles");
         return response.data;
     } catch (error) {
-        console.error(`Status ${error.response.status}`);
-        console.error(`Trace ID: ${error.response.headers["x-trace-id"]}`);
-        console.error(error.response.data);
+        defaultErrorHandler(error);
         throw error;
     }
 };
@@ -46,9 +53,7 @@ const createQuote = async (profileId) => {
         const response = await wiseClient.post(`/v3/profiles/${profileId}/quotes`, body);
         return response.data;
     } catch (error) {
-        console.error(`Status ${error.response.status}`);
-        console.error(`Trace ID: ${error.response.headers["x-trace-id"]}`);
-        console.error(error.response.data);
+        defaultErrorHandler(error);
         throw error;
     }
 };
@@ -69,9 +74,7 @@ const createRecipient = async () => {
         const response = await wiseClient.post("/v1/accounts", body);
         return response.data;
     } catch (error) {
-        console.error(`Status ${error.response.status}`);
-        console.error(`Trace ID: ${error.response.headers["x-trace-id"]}`);
-        console.error(error.response.data);
+        defaultErrorHandler(error);
         throw error;
     }
 };
@@ -142,8 +145,10 @@ const runLogic = async () => {
 
     // Create Transfer
     const transfer = await createTransfer(recipient.id, quote.id, uuid.v4());
+
     // Task 8: Console Log the Transfer ID
     console.log(`Transfer ID: ${transfer.id}`);
+
     // Task 9: Console Log the Transfer Status
     console.log(`Transfer Status: ${transfer.status}`);
 
