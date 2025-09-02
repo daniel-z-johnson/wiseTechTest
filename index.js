@@ -3,6 +3,7 @@ const uuid = require("uuid");
 require("dotenv").config();
 
 const BANK_TRANSFER = "BANK_TRANSFER";
+
 const wiseClient = axios.create({
     baseURL: process.env.API_URL,
     timeout: 10000,
@@ -42,12 +43,12 @@ const listProfiles = async () => {
     }
 };
 
-const createQuote = async (profileId) => {
+const createQuote = async (sourceCurrency, targetCurrency, amount, profileId) => {
     try {
         const body = {
-            sourceCurrency: "SGD",
-            targetCurrency: "GBP",
-            sourceAmount: 1000,
+            sourceCurrency: sourceCurrency,
+            targetCurrency: targetCurrency,
+            sourceAmount: amount,
             preferredPayIn: BANK_TRANSFER,
             payOut: BANK_TRANSFER
         };
@@ -60,16 +61,16 @@ const createQuote = async (profileId) => {
     }
 };
 
-const createRecipient = async () => {
+const createRecipient = async (person, currency, type, legalType, sortCode, accountNumber) => {
     try {
         const body = {
-            accountHolderName: "Adam Smith",
-            currency: "GBP",
-            type: "sort_code",
+            accountHolderName: person,
+            currency: currency,
+            type: type,
             details: {
-                legalType: "PRIVATE",
-                sortCode: "04-00-04",
-                accountNumber: "12345678",
+                legalType: legalType,
+                sortCode: sortCode,
+                accountNumber: accountNumber,
             },
         };
 
@@ -114,7 +115,7 @@ const runLogic = async () => {
     // Create Quote
     // [IMP] Select BANK_TRANSFER option for both payin and payout
     // Make sure you are selecting the correct payin and payout options to get the correct transfer fee.
-    const quote = await createQuote(profile.id);
+    const quote = await createQuote("SGD", "GBP", 1000, profile.id);
     // Task 2: Console Log the Quote ID
     console.log(`Quote ID: ${quote.id}`);
 
@@ -144,7 +145,7 @@ const runLogic = async () => {
 
     // Create Recipient (GBP Sort Code)
     // Task 7: Console Log the Recipient ID
-    const recipient = await createRecipient();
+    const recipient = await createRecipient("Adam Smith", "GBP", "sort_code", "PRIVATE", "04-00-04", "12345678");
     console.log(`Recipient ID: ${recipient.id}`);
 
     // Create Transfer
@@ -159,6 +160,16 @@ const runLogic = async () => {
     // Remember to copy all the console logs to a text file for submission.
     console.log("All tasks completed successfully.");
 };
+
+if (!process.env.API_KEY) {
+    console.error("Missing API_KEY in environment variables. Ensure .env file exists and is configured.");
+    process.exit(1);
+}
+
+if (!process.env.API_URL) {
+    console.error("Missing API_URL in environment variables. Ensure .env file exists and is configured.");
+    process.exit(1);
+}
 
 Promise.resolve()
     .then(() => runLogic())
