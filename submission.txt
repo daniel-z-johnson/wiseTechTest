@@ -1,0 +1,11 @@
+[dotenv@17.2.1] injecting env (2) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+Profile ID: 28864988
+Quote ID: dcae425d-eb86-4b1e-a757-f856c26b3adb
+Recipient receives: 573.05 GBP
+Exchange rate: 0.5751
+Total fee: 3.61 SGD
+Delivery Estimate: 09/02/2025, 00:24
+Recipient ID: 701517508
+Transfer ID: 55396560
+Transfer Status: incoming_payment_waiting
+All tasks completed successfully.
