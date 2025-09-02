@@ -56,7 +56,7 @@ const createQuote = async (profileId) => {
 const createRecipient = async () => {
     try {
         const body = {
-            accountHolderName: "GBP Person Name",
+            accountHolderName: "Adam Smith",
             currency: "GBP",
             type: "sort_code",
             details: {
@@ -76,17 +76,18 @@ const createRecipient = async () => {
     }
 };
 
-const createTransfer = async () => {
-    try {
-        const url = `https://api.sandbox.transferwise.tech`;
-        const config = {
-            headers: {
-                "Content-Type": "application/json",
-            },
+const createTransfer = async (targetAccount, quoteId, transactionId) => {
+        const body = {
+            targetAccount: targetAccount,
+            quoteUuid: quoteId,
+            customerTransactionId: transactionId || uuid.v4(),
+            details : {
+                reference: "Wise Tech Test"
+            }
         };
-        const body = {};
 
-        const response = await axios.post(url, body, config);
+        try {
+        const response = await wiseClient.post("/v1/transfers", body);
         return response.data;
     } catch (error) {
         console.error(`Status ${error.response.status}`);
@@ -135,13 +136,16 @@ const runLogic = async () => {
     console.log(`Delivery Estimate: ${deliveryEstimate}`)
 
     // Create Recipient (GBP Sort Code)
-    const recipient = await createRecipient();
     // Task 7: Console Log the Recipient ID
+    const recipient = await createRecipient();
+    console.log(`Recipient ID: ${recipient.id}`);
 
     // Create Transfer
-    const transfer = await createTransfer();
+    const transfer = await createTransfer(recipient.id, quote.id, uuid.v4());
     // Task 8: Console Log the Transfer ID
+    console.log(`Transfer ID: ${transfer.id}`);
     // Task 9: Console Log the Transfer Status
+    console.log(`Transfer Status: ${transfer.status}`);
 
     // Remember to copy all the console logs to a text file for submission.
     console.log("All tasks completed successfully.");
