@@ -27,6 +27,8 @@ const defaultErrorHandler = (error) => {
         console.error(`Status ${error.response.status}`);
         console.error(`Trace ID: ${error.response.headers["x-trace-id"]}`);
         console.error(error.response.data);
+    } else {
+        console.error(error.message);
     }
 }
 
@@ -93,9 +95,7 @@ const createTransfer = async (targetAccount, quoteId, transactionId) => {
         const response = await wiseClient.post("/v1/transfers", body);
         return response.data;
     } catch (error) {
-        console.error(`Status ${error.response.status}`);
-        console.error(`Trace ID: ${error.response.headers["x-trace-id"]}`);
-        console.error(error.response.data);
+        defaultErrorHandler(error);
         throw error;
     }
 };
