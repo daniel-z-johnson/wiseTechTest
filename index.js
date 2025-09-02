@@ -83,6 +83,10 @@ const createRecipient = async (person, currency, type, legalType, sortCode, acco
 };
 
 const createTransfer = async (targetAccount, quoteId, transactionId) => {
+    if (!targetAccount || !quoteId) {
+        throw new Error("targetAccount and quoteId are required for creating a transfer");
+    }
+    
     const body = {
         targetAccount: targetAccount,
         quoteUuid: quoteId,
@@ -125,22 +129,39 @@ const runLogic = async () => {
         throw new Error("No payment options found in the quote");
     }
     const paymentOption = quote.paymentOptions.find(option => option.payIn === BANK_TRANSFER && option.payOut === BANK_TRANSFER);
+    if (!paymentOption) {
+        console.error("No BANK_TRANSFER payment option found in the quote.");
+        throw new Error("No BANK_TRANSFER payment option found in the quote");
+    }
     console.log(`Recipient receives: ${paymentOption.targetAmount} ${paymentOption.targetCurrency}`);
 
     // Task 4: Console Log the Exchange Rate (4 decimal places, e.g. "1.2345")
-    const exchangeRate = (quote.rate || 0).toFixed(4);
+    if (typeof quote.rate !== 'number') {
+        console.error("Invalid or missing exchange rate in quote");
+        throw new Error("Invalid or missing exchange rate in quote");
+    }
+    const exchangeRate = quote.rate.toFixed(4);
     console.log(`Exchange rate: ${exchangeRate}`);
 
     // Task 5: Console Log the Fees (total fee)
-    const totalFee = paymentOption?.price?.total?.value;
-    if (!totalFee) {
+    const totalFee = paymentOption?.price?.total;
+    if (!totalFee || !totalFee.value) {
         console.error(`No total fee found in the payment option.`);
         throw new Error("No total fee found in the payment option");
     }
-    console.log(`Total fee: ${totalFee.label}`);
+    const feeLabel = totalFee.label || `${totalFee.value} ${paymentOption.sourceCurrency}`;
+    console.log(`Total fee: ${feeLabel}`);
 
     // Task 6: Console Log the Delivery Estimates (human readable format)
-    const deliveryEstimate = paymentOption.estimatedDelivery ? new Date(paymentOption.estimatedDelivery).toLocaleString("en-US", dateOptions) : "N/A";
+    let deliveryEstimate = "N/A";
+    if (paymentOption.estimatedDelivery) {
+        try {
+            deliveryEstimate = new Date(paymentOption.estimatedDelivery).toLocaleString("en-US", dateOptions);
+        } catch (dateError) {
+            console.warn("Invalid delivery estimate date format:", paymentOption.estimatedDelivery);
+            deliveryEstimate = paymentOption.estimatedDelivery;
+        }
+    }
     console.log(`Delivery Estimate: ${deliveryEstimate}`)
 
     // Create Recipient (GBP Sort Code)
@@ -162,18 +183,26 @@ const runLogic = async () => {
 };
 
 if (!process.env.API_KEY) {
-    console.error("Missing API_KEY in environment variables. Ensure .env file exists and is configured.");
+    console.error("Missing API_KEY in environment variables.");
+    console.error("Please create a .env file based on .env.example and add your Wise API key.");
+    console.error("Get your API key from: https://sandbox.transferwise.tech (Settings > Integration and tools > API token)");
     process.exit(1);
 }
 
 if (!process.env.API_URL) {
-    console.error("Missing API_URL in environment variables. Ensure .env file exists and is configured.");
+    console.error("Missing API_URL in environment variables.");
+    console.error("Please create a .env file based on .env.example and add the API URL.");
+    console.error("For sandbox: API_URL=https://api.sandbox.transferwise.tech");
     process.exit(1);
 }
 
 Promise.resolve()
     .then(() => runLogic())
     .catch((error) => {
-        console.error("An error occurred");
+        console.error("An error occurred:", error.message);
+        if (error.response) {
+            console.error("API Error Details:", error.response.data);
+        }
+        process.exit(1);
     });
 
