@@ -2,14 +2,24 @@ const axios = require("axios");
 const uuid = require("uuid");
 require("dotenv").config();
 
+const BANK_TRANSFER = "BANK_TRANSFER";
 const wiseClient = axios.create({
     baseURL: process.env.API_URL,
-    timeout: 5000,
+    timeout: 10000,
     headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${process.env.API_KEY}`,
+        "Accept": "application/json"
     },
 });
+const dateOptions = {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+};
 
 const listProfiles = async () => {
     try {
@@ -29,6 +39,8 @@ const createQuote = async (profileId) => {
             sourceCurrency: "SGD",
             targetCurrency: "GBP",
             sourceAmount: 1000,
+            preferredPayIn: BANK_TRANSFER,
+            payOut: BANK_TRANSFER
         };
 
         const response = await wiseClient.post(`/v3/profiles/${profileId}/quotes`, body);
@@ -43,12 +55,6 @@ const createQuote = async (profileId) => {
 
 const createRecipient = async () => {
     try {
-        const url = `https://api.sandbox.transferwise.tech/v1/accounts`;
-        const config = {
-            headers: {
-                "Content-Type": "application/json",
-            },
-        };
         const body = {
             accountHolderName: "GBP Person Name",
             currency: "GBP",
@@ -60,7 +66,7 @@ const createRecipient = async () => {
             },
         };
 
-        const response = await axios.post(url, body, config);
+        const response = await wiseClient.post("/v1/accounts", body);
         return response.data;
     } catch (error) {
         console.error(`Status ${error.response.status}`);
@@ -93,23 +99,40 @@ const createTransfer = async () => {
 const runLogic = async () => {
     // Task 1: Find out the Personal Profile ID of the user.
     const profiles = await listProfiles();
-    const profile = profiles.find(profile => (profile.type || "").toLocaleLowerCase() === "personal");
+    const profile = profiles.find(profile => (profile.type || "").toLowerCase() === "personal");
     if(!profile) {
+        console.error("No profile found.");
         throw new Error("No personal profile found");
     }
     const profileId = profile.id;
     console.log(`Profile ID: ${profileId}`); // Example Console Log
 
     // Create Quote
+    // [IMP] Select BANK_TRANSFER option for both payin and payout
+    // Make sure you are selecting the correct payin and payout options to get the correct transfer fee.
     const quote = await createQuote(profileId);
-    console.log(quote);
-    // [IMP] Select BANK_TRANSFER option for both paying and payout
-    // Make sure you are selecting the correct paying and payout options to get the            correct transfer fee.
     // Task 2: Console Log the Quote ID
-    // Task 3: Console Log the Amount the recipient will receive, including the               currency (e.g. "12.34 GBP")
+    console.log(`Quote ID: ${quote.id}`);
+
+    // Task 3: Console Log the Amount the recipient will receive, including the currency (e.g. "12.34 GBP")
+    if (!quote.paymentOptions || quote.paymentOptions.length === 0) {
+        console.error("No payment options found in the quote.");
+        throw new Error("No payment options found in the quote");
+    }
+    const paymentOption = quote.paymentOptions.find(option => option.payIn === BANK_TRANSFER && option.payOut === BANK_TRANSFER);
+    console.log(`${paymentOption.targetAmount} ${paymentOption.targetCurrency}`);
+
     // Task 4: Console Log the Exchange Rate (4 decimal places, e.g. "1.2345")
+    const exchangeRate = (quote.rate || 0).toFixed(4);
+    console.log(`Exchange rate: ${exchangeRate}`);
+
     // Task 5: Console Log the Fees (total fee)
+    const fee = paymentOption?.fee?.total || 0;
+    console.log(`Total fee: ${fee}`);
+
     // Task 6: Console Log the Delivery Estimates (human readable format)
+    const deliveryEstimate = paymentOption.estimatedDelivery? new Date(paymentOption.estimatedDelivery).toLocaleString("en-US", dateOptions) : "N/A";
+    console.log(`Delivery Estimate: ${deliveryEstimate}`)
 
     // Create Recipient (GBP Sort Code)
     const recipient = await createRecipient();
