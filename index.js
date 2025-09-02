@@ -23,7 +23,7 @@ const dateOptions = {
 };
 
 const defaultErrorHandler = (error) => {
-    if(error.response) {
+    if (error.response) {
         console.error(`Status ${error.response.status}`);
         console.error(`Trace ID: ${error.response.headers["x-trace-id"]}`);
         console.error(error.response.data);
@@ -82,16 +82,16 @@ const createRecipient = async () => {
 };
 
 const createTransfer = async (targetAccount, quoteId, transactionId) => {
-        const body = {
-            targetAccount: targetAccount,
-            quoteUuid: quoteId,
-            customerTransactionId: transactionId || uuid.v4(),
-            details : {
-                reference: "Wise Tech Test"
-            }
-        };
+    const body = {
+        targetAccount: targetAccount,
+        quoteUuid: quoteId,
+        customerTransactionId: transactionId || uuid.v4(),
+        details: {
+            reference: "Wise Tech Test"
+        }
+    };
 
-        try {
+    try {
         const response = await wiseClient.post("/v1/transfers", body);
         return response.data;
     } catch (error) {
@@ -104,7 +104,7 @@ const runLogic = async () => {
     // Task 1: Find out the Personal Profile ID of the user.
     const profiles = await listProfiles();
     const profile = profiles.find(profile => (profile.type || "").toLowerCase() === "personal");
-    if(!profile) {
+    if (!profile) {
         console.error("No profile found.");
         throw new Error("No personal profile found");
     }
@@ -124,18 +124,22 @@ const runLogic = async () => {
         throw new Error("No payment options found in the quote");
     }
     const paymentOption = quote.paymentOptions.find(option => option.payIn === BANK_TRANSFER && option.payOut === BANK_TRANSFER);
-    console.log(`${paymentOption.targetAmount} ${paymentOption.targetCurrency}`);
+    console.log(`Recipient receives: ${paymentOption.targetAmount} ${paymentOption.targetCurrency}`);
 
     // Task 4: Console Log the Exchange Rate (4 decimal places, e.g. "1.2345")
     const exchangeRate = (quote.rate || 0).toFixed(4);
     console.log(`Exchange rate: ${exchangeRate}`);
 
     // Task 5: Console Log the Fees (total fee)
-    const fee = paymentOption?.fee?.total || 0;
-    console.log(`Total fee: ${fee}`);
+    const totalFee = paymentOption?.price?.total?.value;
+    if (!totalFee) {
+        console.error(`No total fee found in the payment option.`);
+        throw new Error("No total fee found in the payment option");
+    }
+    console.log(`Total fee: ${totalFee.label}`);
 
     // Task 6: Console Log the Delivery Estimates (human readable format)
-    const deliveryEstimate = paymentOption.estimatedDelivery? new Date(paymentOption.estimatedDelivery).toLocaleString("en-US", dateOptions) : "N/A";
+    const deliveryEstimate = paymentOption.estimatedDelivery ? new Date(paymentOption.estimatedDelivery).toLocaleString("en-US", dateOptions) : "N/A";
     console.log(`Delivery Estimate: ${deliveryEstimate}`)
 
     // Create Recipient (GBP Sort Code)
