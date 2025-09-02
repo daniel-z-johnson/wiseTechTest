@@ -108,13 +108,13 @@ const runLogic = async () => {
         console.error("No profile found.");
         throw new Error("No personal profile found");
     }
-    const profileId = profile.id;
-    console.log(`Profile ID: ${profileId}`); // Example Console Log
+
+    console.log(`Profile ID: ${profile.id}`);
 
     // Create Quote
     // [IMP] Select BANK_TRANSFER option for both payin and payout
     // Make sure you are selecting the correct payin and payout options to get the correct transfer fee.
-    const quote = await createQuote(profileId);
+    const quote = await createQuote(profile.id);
     // Task 2: Console Log the Quote ID
     console.log(`Quote ID: ${quote.id}`);
 
